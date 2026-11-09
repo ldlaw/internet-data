@@ -1,0 +1,62 @@
+# INACTIVE. This repository has no remote and no GitHub repository exists yet; nothing in this file runs until Gate 2B.
+# Before it can run: the owner creates the repo and sets Pages to "GitHub Actions" (see docs/OPERATIONS.md), and every action SHA below is re-verified.
+#
+# What it does: collect from the provider (or, when config/control.json is disabled, skip the provider entirely), run every gate, upload the
+# site tree and deploy it with the custom Pages workflow. No commits, no secrets, no tokens beyond the job's own. A failed gate fails the job
+# BEFORE deploy, so the previous deployment stays online.
+name: collect-and-deploy
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'   # twice an hour, away from the :00 and :30 peaks
+  workflow_dispatch: {}
+  push:                        # a config change (for example the kill switch) deploys at once
+    branches: [main]
+    paths: ['config/**', 'src/**', 'contracts/**', '.github/workflows/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1 (resolved 2026-11-09, re-verify in Gate 2B)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1   # v7.1.0
+        with:
+          node-version: '22'
+      - name: Tests
+        run: node --test
+      - name: Collect, validate and build the site tree
+        run: node src/collect.mjs --out site
+      - name: Keep the normalized dataset as a short-retention artifact (never published)
+        if: ${{ hashFiles('out/dataset.json') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9   # v7.0.2
+        with:
+          name: dataset
+          path: out/dataset.json
+          retention-days: 7
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9   # v5.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346   # v5.0.1
