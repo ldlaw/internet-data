@@ -116,9 +116,18 @@ test('cli: fault injection is refused for real-data permission states, before an
 test('cli: a disabled control still deploys the kill-switch site in synthetic mode, with no dataset', async () => {
   const s = setup({ control: false }), r = await run(s); assert.equal(r.status, 0, r.stderr); const c = JSON.parse(fs.readFileSync(path.join(s.site, 'v1/control.json'), 'utf8')); assert.equal(c.enabled, false); assert.ok(!fs.existsSync(path.join(s.site, 'v1/views')));
 });
-test('cli: the committed Gate 2B configuration is synthetic, enabled, and produces a valid simulated site', async () => {
-  const pub = JSON.parse(fs.readFileSync(path.join(root, 'config', 'publication.json'), 'utf8')), con = JSON.parse(fs.readFileSync(path.join(root, 'config', 'control.json'), 'utf8'));
-  assert.equal(pub.permission_status, 'synthetic'); assert.equal(pub.rehearsal_fault, 'none'); assert.equal(con.enabled, true);
+test('cli: whatever supported state the committed configuration is in (data on, kill switch engaged, or a rehearsal fault) it stays synthetic and the collector behaves as documented', async () => {
+  // This test runs in CI BEFORE the collector. It must therefore accept every state an operator may legitimately commit: pinning "enabled" or "no fault"
+  // would make the Tests step fail first, so the kill switch could never deploy and a rehearsal fault could never reach the gate it is meant to exercise.
+  const pub = JSON.parse(fs.readFileSync(path.join(root, 'config', 'publication.json'), 'utf8')), con = JSON.parse(fs.readFileSync(path.join(root, 'config', 'control.json'), 'utf8')), fault = pub.rehearsal_fault ?? 'none';
+  assert.equal(pub.permission_status, 'synthetic');   // Gate 2B stays synthetic-only in every state
+  assert.ok(FAULTS.includes(fault), `unknown rehearsal_fault ${fault}`);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idata-cfg-')), site = path.join(dir, 'site'), r = await exec([path.join(root, 'src', 'collect.mjs'), '--out', site, '--api-base', 'http://127.0.0.1:9/api/v2', '--timeout', '500']);
-  assert.equal(r.status, 0, r.stderr + r.stdout); assert.equal(JSON.parse(fs.readFileSync(path.join(site, 'v1/views/home.json'), 'utf8')).attribution.simulated, true);
+  if (con.enabled !== true) {   // kill switch engaged: control-only tree, no data view, no provider activity
+    assert.equal(r.status, 0, r.stderr + r.stdout); assert.equal(JSON.parse(fs.readFileSync(path.join(site, 'v1/control.json'), 'utf8')).enabled, false); assert.ok(!fs.existsSync(path.join(site, 'v1/views')));
+  } else if (fault === 'none') {   // normal synthetic publication
+    assert.equal(r.status, 0, r.stderr + r.stdout); assert.equal(JSON.parse(fs.readFileSync(path.join(site, 'v1/views/home.json'), 'utf8')).attribution.simulated, true);
+  } else {   // a rehearsal fault fails exactly the gate it names and writes no site at all
+    assert.equal(r.status, { validation: 2, quality: 2, permission: 3, collection: 4 }[fault], r.stderr + r.stdout); assert.ok(!fs.existsSync(site));
+  }
 });
