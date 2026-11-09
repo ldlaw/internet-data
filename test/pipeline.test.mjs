@@ -6,7 +6,8 @@ import { buildSite, buildControlOnlySite, GateFailure } from '../src/build.mjs';
 import { validateDocument, scanLeaks } from '../src/contract.mjs';
 import { startMock } from './helpers/mock-ripe.mjs';
 import { loadConfig, NOW } from './helpers/ripe-fixtures.mjs';
-import { SCHEMA, clone, makeDataset } from './helpers/model.mjs';
+import { SCHEMA, clone, makeDataset, isoZ } from './helpers/model.mjs';
+import { collectSynthetic } from '../src/adapters/fixture-ping.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), schemaText = fs.readFileSync(path.join(root, 'contracts', 'internet-model.v1.schema.json'), 'utf8');
 const quiet = async () => {};
@@ -35,7 +36,7 @@ test('http: only the configured HTTPS host is allowed', async () => {
 const ctl = (o = {}) => ({ enabled: true, surfaces: { home: true, dashboard: true }, reason: null, ...o });
 const NOWISO = '2026-11-09T00:50:27Z';
 const build = (o) => buildSite({ schema: SCHEMA, schemaText, controlConfig: ctl(), publication: { permission_status: 'granted' }, dataset: makeDataset({ permission: 'granted' }), nowIso: NOWISO, ...o });
-const fixtureDataset = (status) => { const d = makeDataset({ permission: status }); d.provenance.provider = { ...d.provenance.provider, id: 'fixture', name: 'Test fixture', operator: 'Test', attribution: 'Synthetic test data.' }; return d; };
+const fixtureDataset = (status = 'synthetic') => { const d = collectSynthetic(cfg, { nowSeconds: NOW, fetchedAt: isoZ(NOW) }); d.provenance.publication.permission_status = status; return d; };
 const fails = (fn, code) => assert.throws(fn, (e) => e instanceof GateFailure && e.code === code, `expected GateFailure ${code}`);
 
 test('gate: permission pending blocks publication of any dataset', () => fails(() => build({ publication: { permission_status: 'pending' }, dataset: makeDataset({ permission: 'pending' }) }), 'permission'));
@@ -43,12 +44,12 @@ test('gate: granted RIPE data publishes a valid site tree (control, home view, s
   const r = build(); assert.equal(r.mode, 'publish'); assert.deepEqual([...r.files.keys()].sort(), ['robots.txt', 'v1/control.json', 'v1/schema/internet-model.json', 'v1/views/home.json']);
   const home = JSON.parse(r.files.get('v1/views/home.json')); assert.deepEqual(validateDocument(SCHEMA, home, { dataset: r.dataset }), []); assert.equal(home.pairs.length, 45); assert.equal(scanLeaks(home).length, 0);
 });
-test('gate: the dataset itself is never part of the site tree (it stays a CI artifact)', () => assert.ok(![...build().files.keys()].some((k) => k.includes('dataset'))));
+test('gate: the dataset itself is never part of the site tree (only the curated home view is published)', () => assert.ok(![...build().files.keys()].some((k) => k.includes('dataset'))));
 test('gate: synthetic permission may publish only a fixture provider, marked simulated', () => {
   fails(() => build({ publication: { permission_status: 'synthetic' }, dataset: makeDataset({ permission: 'synthetic' }) }), 'permission');
   const r = build({ publication: { permission_status: 'synthetic' }, dataset: fixtureDataset('synthetic') }); assert.equal(JSON.parse(r.files.get('v1/views/home.json')).attribution.simulated, true);
 });
-test('gate: a fixture dataset can never be published as real data', () => fails(() => build({ dataset: fixtureDataset('granted') }), 'permission'));
+test('gate: a fixture dataset can never be published as real data', () => fails(() => build({ dataset: fixtureDataset('granted'), publication: { permission_status: 'granted' } }), 'permission'));
 test('gate: dataset and config disagreeing about permission is refused', () => fails(() => build({ publication: { permission_status: 'granted' }, dataset: makeDataset({ permission: 'not_required' }) }), 'permission'));
 test('gate: an unknown permission status is refused', () => fails(() => build({ publication: { permission_status: 'yes' }, dataset: makeDataset({ permission: 'yes' }) }), 'permission'));
 test('gate: fewer than half the pairs with data is refused (quality), the previous deployment stays', () => {

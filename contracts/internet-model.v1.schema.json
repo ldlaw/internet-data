@@ -354,7 +354,8 @@
             "method",
             "fetched_at",
             "collector",
-            "publication"
+            "publication",
+            "simulated"
           ],
           "properties": {
             "provider": {
@@ -445,6 +446,9 @@
                   ]
                 }
               }
+            },
+            "simulated": {
+              "type": "boolean"
             }
           }
         },

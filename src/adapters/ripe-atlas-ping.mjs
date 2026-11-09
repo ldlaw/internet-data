@@ -29,7 +29,8 @@ const median = (v) => { const s = [...v].sort((a, b) => a - b), m = s.length >> 
 // The docs say /latest/ is keyed by probe id; the live API returned an array. Accept both, ignore anything that is not an object.
 const rowsOf = (resp) => (Array.isArray(resp) ? resp : resp && typeof resp === 'object' ? Object.values(resp).flat() : []).filter((r) => r && typeof r === 'object');
 
-export function normalize(rawByNode, config, { generatedAt, fetchedAt, collectorVersion = '0.0.0-gate2a', permissionStatus = 'pending' }) {
+// provider, simulated, datasetId, method and notes are overridden only by the synthetic fixture adapter (src/adapters/fixture-ping.mjs).
+export function normalize(rawByNode, config, { generatedAt, fetchedAt, collectorVersion = '0.0.0-gate2a', permissionStatus = 'pending', provider = PROVIDER, simulated = false, datasetId = config.dataset_id, method = null, notes = null }) {
   const nodes = config.nodes, dropped = {}, bump = (k) => { dropped[k] = (dropped[k] || 0) + 1; }, observations = [];
   for (const dst of nodes) {
     const list = rowsOf(rawByNode.get(dst.id));
@@ -63,12 +64,12 @@ export function normalize(rawByNode, config, { generatedAt, fetchedAt, collector
   }
   observations.sort((a, b) => a.id.localeCompare(b.id));
   return {
-    schema: 'lateeflaw.internet-dataset', schema_version: '1.0', dataset_id: config.dataset_id, generated_at: isoZ(generatedAt),
-    provenance: { provider: PROVIDER, method: { kind: 'ping', protocol: 'ICMP', af: 4, interval_s: 240, packets_per_result: POLICY.packets, window_results_max: POLICY.windowResults, selection: 'Curated RIPE Atlas anchors in data centres, public anchoring-mesh ping measurements', api: API_BASE + '/' },
-      fetched_at: fetchedAt, collector: { version: collectorVersion }, publication: { permission_status: permissionStatus } },
+    schema: 'lateeflaw.internet-dataset', schema_version: '1.0', dataset_id: datasetId, generated_at: isoZ(generatedAt),
+    provenance: { provider, method: method || { kind: 'ping', protocol: 'ICMP', af: 4, interval_s: 240, packets_per_result: POLICY.packets, window_results_max: POLICY.windowResults, selection: 'Curated RIPE Atlas anchors in data centres, public anchoring-mesh ping measurements', api: API_BASE + '/' },
+      fetched_at: fetchedAt, collector: { version: collectorVersion }, publication: { permission_status: permissionStatus }, simulated },
     endpoints: nodes.map((n) => ({ id: n.id, kind: 'anchor', label: n.label, country: n.country, geo: { lat: n.lat, lon: n.lon, precision_km: 1 }, refs: { anchor_id: n.anchor_id, probe_id: n.probe_id } })).sort((a, b) => a.id.localeCompare(b.id)),
     observations,
     coverage: { endpoints: nodes.length, expected: nodes.length * (nodes.length - 1), published: observations.length, dropped },
-    notes: ['All endpoints are RIPE Atlas anchors in data centres. Coordinates are rounded to 0.01 degree, about 1 km.', 'Observations are measured ping results between two endpoints. They are not traceroutes and carry no route information.']
+    notes: notes || ['All endpoints are RIPE Atlas anchors in data centres. Coordinates are rounded to 0.01 degree, about 1 km.', 'Observations are measured ping results between two endpoints. They are not traceroutes and carry no route information.']
   };
 }

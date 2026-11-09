@@ -56,6 +56,21 @@ export function scanLeaks(v, p = '') {
   return e;
 }
 
+// Simulated data is marked in five independent places that must agree: provenance.simulated, permission_status 'synthetic', provider id 'fixture',
+// a dataset id starting 'synthetic-', and identifiers in a reserved range (above 4,000,000,000) that no real RIPE Atlas id has reached. The rules
+// below make every combination other than "all five say synthetic" or "all five say real" a validation error, in the dataset and in the home view.
+export const SYNTHETIC_ID_BASE = 4000000000;
+const syntheticRules = (e, { simulated, datasetId, ids, urls, texts }) => {
+  if (simulated) {
+    if (!datasetId.startsWith('synthetic-')) e.push(`dataset_id '${datasetId}' must start with 'synthetic-' for simulated data`);
+    for (const [k, v] of Object.entries(texts)) if (!/simulated|synthetic/i.test(v)) e.push(`${k} must say that the data is simulated`);
+    for (const [k, v] of Object.entries(urls)) if (/ripe\.net/i.test(v)) e.push(`${k} must not point at RIPE for simulated data`);
+    ids.forEach(([k, v]) => { if (!(v > SYNTHETIC_ID_BASE)) e.push(`${k} ${v} must be above ${SYNTHETIC_ID_BASE} (the reserved synthetic range)`); });
+  } else {
+    if (datasetId.startsWith('synthetic-')) e.push(`dataset_id '${datasetId}' uses the reserved 'synthetic-' prefix but the data is not marked simulated`);
+    ids.forEach(([k, v]) => { if (v > SYNTHETIC_ID_BASE) e.push(`${k} ${v} is in the reserved synthetic range but the data is not marked simulated`); });
+  }
+};
 const qualityLevel = (flags, results) => { const n = ['few_results', 'aged', 'clock_unsynced'].filter((x) => flags.has(x)).length; return results >= 3 && n === 0 ? 'good' : results >= 3 && n === 1 ? 'degraded' : 'poor'; };
 const ukey = (a, b) => [a, b].sort().join('|');
 
@@ -67,6 +82,14 @@ export function semantic(doc, ctx = {}) {
     if (by.size !== doc.endpoints.length) e.push('endpoints: duplicate id');
     const gen = iso(doc.generated_at), obsIds = new Set();
     if (iso(doc.provenance.fetched_at) > gen) e.push('provenance.fetched_at is after generated_at');
+    const pv = doc.provenance, sim = pv.simulated === true;
+    if (sim !== (pv.publication.permission_status === 'synthetic')) e.push("provenance.simulated must be true exactly when permission_status is 'synthetic'");
+    if (sim !== (pv.provider.id === 'fixture')) e.push("provenance.simulated must be true exactly when the provider id is 'fixture'");
+    syntheticRules(e, { simulated: sim, datasetId: doc.dataset_id,
+      texts: { 'provider.name': pv.provider.name, 'provider.attribution': pv.provider.attribution, 'notes[0]': doc.notes[0] || '', 'method.selection': pv.method.selection },
+      urls: { 'provider.url': pv.provider.url, 'provider.terms_url': pv.provider.terms_url, 'method.api': pv.method.api },
+      ids: [...doc.endpoints.flatMap((x) => [[`endpoint ${x.id} anchor_id`, x.refs.anchor_id], [`endpoint ${x.id} probe_id`, x.refs.probe_id]]), ...doc.observations.flatMap((o) => [[`observation ${o.id} measurement_id`, o.source.measurement_id], [`observation ${o.id} probe_id`, o.source.probe_id]])] });
+    if (sim && !/^SIMULATED/.test(doc.notes[0] || '')) e.push("notes[0] must begin with 'SIMULATED' for simulated data");
     for (const o of doc.observations) {
       const at = `observation ${o.id}`;
       if (obsIds.has(o.id)) e.push(`${at}: duplicate id`); obsIds.add(o.id);
@@ -100,6 +123,11 @@ export function semantic(doc, ctx = {}) {
     const by = new Map(doc.nodes.map((x) => [x.id, x]));
     if (by.size !== doc.nodes.length) e.push('nodes: duplicate id');
     const seen = new Set(); let newest = '', oldest = '9';
+    const at0 = doc.attribution, simV = at0.simulated === true;
+    syntheticRules(e, { simulated: simV, datasetId: doc.dataset_id, texts: { 'attribution.text': at0.text, 'attribution.disclaimer': at0.disclaimer }, urls: { 'attribution.url': at0.url, 'attribution.terms_url': at0.terms_url },
+      ids: doc.pairs.flatMap((p) => [[`pair ${p.src}>${p.dst} measurement_id`, p.measurement_id], [`pair ${p.src}>${p.dst} probe_id`, p.probe_id]]) });
+    if (simV && !/^SIMULATED/.test(at0.text)) e.push("attribution.text must begin with 'SIMULATED' for simulated data");
+    if (ctx.dataset && simV !== (ctx.dataset.provenance.simulated === true)) e.push('attribution.simulated differs from the dataset provenance.simulated');
     for (const p of doc.pairs) {
       const at = `pair ${p.src}>${p.dst}`;
       if (p.src === p.dst) e.push(`${at}: src equals dst`);

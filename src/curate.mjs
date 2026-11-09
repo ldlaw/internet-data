@@ -22,10 +22,12 @@ export function curateHome(dataset) {
   const ids = dataset.endpoints.map((e) => e.id).sort(), gaps = [];
   for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) if (!best.has(ukey(ids[i], ids[j]))) gaps.push({ a: ids[i], b: ids[j] });
   const picked = [...best.values()].sort((a, b) => a.id.localeCompare(b.id));
-  const lasts = picked.map((o) => o.observed.last).sort(), n = ids.length, p = dataset.provenance.provider;
+  const lasts = picked.map((o) => o.observed.last).sort(), n = ids.length, p = dataset.provenance.provider, sim = dataset.provenance.simulated === true;
   return {
     schema: 'lateeflaw.home-view', schema_version: '1.0', generated_at: dataset.generated_at, dataset_id: dataset.dataset_id, selection: 'freshest-direction',
-    attribution: { text: `Measurements from ${p.name}, a service of the ${p.operator}.`, url: p.url, terms_url: p.terms_url, simulated: dataset.provenance.publication.permission_status === 'synthetic', disclaimer: 'Arcs join the two measured endpoints for display only. They are not traceroutes or verified routes.' },
+    attribution: sim
+      ? { text: 'SIMULATED test data. These are not real measurements. They exist to test hosting, caching and the kill switch.', url: p.url, terms_url: p.terms_url, simulated: true, disclaimer: 'Simulated values for a hosting test. Arcs join the endpoints for display only. They are not measurements, traceroutes or routes.' }
+      : { text: `Measurements from ${p.name}, a service of the ${p.operator}.`, url: p.url, terms_url: p.terms_url, simulated: false, disclaimer: 'Arcs join the two measured endpoints for display only. They are not traceroutes or verified routes.' },
     freshness: { newest_observation: lasts[lasts.length - 1] || dataset.generated_at, oldest_observation: lasts[0] || dataset.generated_at },
     coverage: { directed_expected: n * (n - 1), directed_available: dataset.observations.length, pairs_expected: n * (n - 1) / 2, pairs_published: picked.length, pairs_missing: gaps.length },
     nodes: dataset.endpoints.map((e) => ({ id: e.id, label: e.label, country: e.country, lat: e.geo.lat, lon: e.geo.lon })),

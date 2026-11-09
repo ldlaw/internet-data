@@ -1,5 +1,5 @@
 {
-  "enabled": false,
-  "surfaces": { "home": true, "dashboard": true },
-  "reason": "not launched"
+  "enabled": true,
+  "surfaces": { "home": true, "dashboard": false },
+  "reason": null
 }
