@@ -18,7 +18,28 @@ const M = [  // [file, exact text to replace, replacement, what it breaks]
   ['src/http.mjs', 'if (state.requests >= maxRequests)', 'if (false)', 'request budget removed'],
   ['src/collect.mjs', "if (!dry && publication.permission_status === 'pending')", 'if (false)', 'collector calls the provider even while permission is pending'],
   ['src/contract.mjs', 'else if (strict && s.additionalProperties === false)', 'else if (false)', 'strict mode no longer rejects unknown (leaked) fields'],
-  ['src/contract.mjs', 'const e = [...scanLeaks(doc)];', 'const e = [];', 'IP-literal scan removed']
+  ['src/contract.mjs', 'const e = [...scanLeaks(doc)];', 'const e = [];', 'IP-literal scan removed'],
+  // Gate 2B: synthetic marking, fault injection, workflow policy
+  ['src/collect.mjs', "if (fault !== 'none' && !synthetic) throw", 'if (false) throw', 'fault injection allowed on real-data permission states'],
+  ['src/collect.mjs', 'if (synthetic) dataset = collectSynthetic(', 'if (false) dataset = collectSynthetic(', 'synthetic mode no longer selects the no-network fixture adapter'],
+  ['src/contract.mjs', "if (sim !== (pv.provider.id === 'fixture'))", 'if (false)', 'simulated flag no longer tied to the fixture provider'],
+  ['src/contract.mjs', "if (sim !== (pv.publication.permission_status === 'synthetic'))", 'if (false)', 'simulated flag no longer tied to the synthetic permission status'],
+  ['src/contract.mjs', "if (!datasetId.startsWith('synthetic-'))", 'if (false)', 'simulated data no longer needs the synthetic- dataset prefix'],
+  ['src/contract.mjs', 'if (!(v > SYNTHETIC_ID_BASE)) e.push', 'if (false) e.push', 'simulated data may use real-looking identifiers'],
+  ['src/contract.mjs', 'if (v > SYNTHETIC_ID_BASE) e.push', 'if (false) e.push', 'real data may use the reserved synthetic identifier range'],
+  ['src/contract.mjs', 'if (/ripe\\.net/i.test(v)) e.push', 'if (false) e.push', 'simulated data may point at RIPE'],
+  ['src/contract.mjs', 'if (ctx.dataset && simV !== (ctx.dataset.provenance.simulated === true))', 'if (false)', 'home view may disagree with the dataset about being simulated'],
+  ['src/contract.mjs', 'if (simV && !/^SIMULATED/.test(at0.text))', 'if (false)', 'simulated home view may omit the SIMULATED attribution'],
+  ['src/curate.mjs', 'simulated: true, disclaimer:', 'simulated: false, disclaimer:', 'simulated home view not flagged simulated'],
+  ['src/curate.mjs', "sim = dataset.provenance.simulated === true;", 'sim = false;', 'home view ignores the dataset simulated flag'],
+  ['src/build.mjs', "if (status === 'synthetic' && provider !== 'fixture') throw", 'if (false) throw', 'synthetic permission may publish a real provider dataset'],
+  ['src/adapters/fixture-ping.mjs', 'anchor_id: SYNTHETIC_ID_BASE + 1 + i', 'anchor_id: 1838 + i', 'synthetic identifiers leave the reserved range'],
+  ['.github/workflows/collect-and-deploy.yml', 'run: node src/collect.mjs --out site --fault "${FAULT:-none}"', 'run: node src/collect.mjs --out site --fault ${{ inputs.fault }}', 'dispatch input interpolated into a shell command'],
+  ['.github/workflows/collect-and-deploy.yml', '      id-token: write', '      id-token: write\n      contents: write', 'deploy job gains contents write'],
+  ['.github/workflows/collect-and-deploy.yml', '  workflow_dispatch:', "  schedule:\n    - cron: '17,47 * * * *'\n  workflow_dispatch:", 'unattended schedule enabled during the rehearsal'],
+  ['.github/workflows/collect-and-deploy.yml', 'persist-credentials: false', 'persist-credentials: true', 'checkout keeps the job credentials'],
+  ['.github/workflows/collect-and-deploy.yml', 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'actions/checkout@v7', 'an action pinned by tag instead of commit SHA'],
+  ['.github/workflows/collect-and-deploy.yml', '        run: node --test', '        run: node --test\n      - run: git push origin HEAD', 'a step that pushes to a repository']
 ];
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7); let survived = 0, ran = 0;
 for (const [file, from, to, what] of M) {

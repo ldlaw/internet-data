@@ -6,7 +6,7 @@ One shared, versioned model for the homepage globe and a future dashboard. `cont
 
 | Schema name | Purpose | Published in Gate 2 |
 |---|---|---|
-| `lateeflaw.internet-dataset` | Rich normalized model: every directed observation, raw first and last observation times, measurement and probe IDs, quality indicators, provenance, coverage | No (validated in CI, kept as a short-lived artifact) |
+| `lateeflaw.internet-dataset` | Rich normalized model: every directed observation, raw first and last observation times, measurement and probe IDs, quality indicators, provenance, coverage | No (validated in CI and discarded, never uploaded) |
 | `lateeflaw.home-view` | Curated subset for the homepage | Yes, once permission is clear |
 | `lateeflaw.internet-control` | Kill switch shared by every consumer | Yes |
 | `lateeflaw.internet-catalog` | Index of datasets and views for the dashboard | Later |
@@ -27,6 +27,10 @@ The home view keeps one direction per unordered pair. What is preserved, and che
 | **Provenance** | `measurement_id` and `probe_id` of that observation |
 | **Quality** | `quality` level and `flags` of that observation |
 | **Missing data** | `reverse` says whether the other direction has a usable observation (`present` or `missing`); `gaps` lists unordered pairs with no usable observation in either direction; `coverage` counts directed and unordered pairs. Nothing disappears silently |
+
+## Simulated data
+
+Simulated (synthetic) data must be unmistakable. The contract requires five markers to agree, in the dataset and again in the home view: `provenance.simulated` (a required boolean), `permission_status: synthetic`, provider id `fixture`, a `dataset_id` starting `synthetic-`, and every identifier above 4,000,000,000. Real data may not use the prefix or that identifier range. Simulated data must also say so in words (`provider.name`, `provider.attribution`, the first note, `method.selection`, `attribution.text` starting `SIMULATED`) and must not point at RIPE. Consumers add their own presentation rules: the website module shows "Simulated test data" in the chip, a dashed gold frame, no RIPE links, and never uses the word "measurements" for simulated values.
 
 ## Freshness
 

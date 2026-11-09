@@ -1,10 +1,10 @@
 # Operations
 
-Status: local development only. No GitHub repository exists, nothing is deployed, nothing is scheduled. Everything below describes how the system is meant to run once the owner creates the repository (Gate 2B).
+Status: **Gate 2B hosting rehearsal with SIMULATED data only.** What this repository publishes right now is a synthetic test fixture, marked simulated in its schema and in every document. It contains no RIPE Atlas data and no real measurement. The collector does not contact any provider while `config/publication.json` is `synthetic`. Nothing is scheduled.
 
 ## What runs
 
-`.github/workflows/collect-and-deploy.yml` runs `node --test`, then `node src/collect.mjs --out site`, then deploys `site/` with the custom Pages workflow. It runs twice an hour (minutes 17 and 47), on manual dispatch, and on any push that touches `config/`, `src/`, `contracts/` or the workflow itself. No commits are made and no secrets are used.
+`.github/workflows/collect-and-deploy.yml` runs `node --test`, then `node src/collect.mjs --out site --fault "${FAULT:-none}"`, then deploys `site/` with the custom Pages workflow. It runs on manual dispatch and on any push to `main` that touches `config/`, `src/`, `contracts/` or the workflow itself. **The schedule is disabled** for the rehearsal (a schedule would keep republishing simulated data unattended); the intended cron is kept in a comment for Gate 3. No commits are made and no secrets are used. The job token is scoped to this repository, so the workflow cannot modify any other repository, and a policy test fails the build if a step could (cross-repository checkout, `git push`, `gh`, `curl`, tokens, the website's name).
 
 `src/collect.mjs` behaves as follows:
 
@@ -12,11 +12,23 @@ Status: local development only. No GitHub repository exists, nothing is deployed
 |---|---|
 | `config/control.json` has `enabled: false` | Builds a control-only site (the kill switch). **No provider request is made.** Exit 0 |
 | `config/publication.json` is `pending` | Refuses **before any provider request**. Exit 3 |
-| Provider unreachable, a second 429, request budget reached | Writes nothing. Exit 4. The job fails before deploy, so the previous deployment stays online |
-| A validation gate fails (schema, leak scan, direction, coverage) or fewer than half the pairs have data | Writes nothing. Exit 2 |
+| `config/publication.json` is `synthetic` | Uses the fixture adapter: simulated values from a seeded distance model, **no network request of any kind**, same normalization and gates as real data |
+| `--fault` other than `none` while permission is not `synthetic` | Refused. Exit 3. Faults can never touch real data |
+| Provider unreachable, a second 429, request budget reached (or the `collection` fault) | Writes nothing. Exit 4. The job fails before deploy, so the previous deployment stays online |
+| A validation gate fails (schema, leak scan, direction, coverage, simulated-marking) or fewer than half the pairs have data (or the `validation` / `quality` faults) | Writes nothing. Exit 2 |
+| The `permission` fault (synthetic data claiming a real provider) | Writes nothing. Exit 3 |
 | Everything passes | Writes `site/v1/control.json`, `site/v1/views/home.json`, `site/v1/schema/internet-model.json`, `site/robots.txt` |
 
-The normalized dataset (all 90 directed observations) is validated and kept only as a 7-day CI artifact. It is not published until the dashboard phase.
+The normalized dataset (all 90 directed observations) is validated and then discarded. It is **not uploaded as a workflow artifact**: in a public repository anyone signed in to GitHub can download artifacts, so an artifact would be a publication that bypasses the permission gate. It stays unpublished until the dashboard phase.
+
+### Rehearsing the failure gates
+
+Two ways, both only while `permission_status` is `synthetic`:
+
+- Run the workflow manually (Actions, collect-and-deploy, Run workflow) and pick a fault: `validation`, `quality`, `permission` or `collection`.
+- Commit `"rehearsal_fault": "<fault>"` in `config/publication.json` (the push runs the workflow). This needs no token and leaves the fault visible in the git history. Set it back to `none` afterwards.
+
+The run must fail at the collect step, the deploy job must be skipped, and the published `v1/` documents must stay exactly as they were (same `generated_at`, same ETag). A leftover fault on any other permission status fails the run loudly (exit 3).
 
 ## Publication gate
 
@@ -26,9 +38,11 @@ The normalized dataset (all 90 directed observations) is validated and kept only
 |---|---|
 | `pending` | RIPE NCC has not answered. Nothing derived from RIPE may be published. This is the committed default |
 | `granted`, `not_required` | RIPE NCC answered in writing. RIPE-derived views may be published |
-| `synthetic` | Only the clearly simulated `fixture` provider may be published (used to rehearse Pages without any RIPE-derived data) |
+| `synthetic` | Only the clearly simulated `fixture` provider may be published (used to rehearse Pages without any RIPE-derived data). The collector switches to the fixture adapter and makes no network request. Committed for Gate 2B |
 
-Do not change this file without the RIPE NCC's written answer. The gate is enforced in code and covered by tests and mutation proofs.
+Simulated data is marked in five independent places that the contract requires to agree: `provenance.simulated`, `permission_status: synthetic`, provider id `fixture`, a dataset id starting `synthetic-`, and identifiers above 4,000,000,000 (no real RIPE Atlas id has reached that range). Real data may not use the prefix or the range. The home view repeats it in `attribution.simulated`, and its text starts with `SIMULATED`.
+
+Do not change this file to `granted` or `not_required` without the RIPE NCC's written answer. The gate is enforced in code and covered by tests and mutation proofs.
 
 ## Immediate disable (kill switch)
 
@@ -59,10 +73,10 @@ Disabling removes every overlay the layer added (links, markers, chip, panel, st
 |---|---|
 | Create the repository | Signed in as the account owner. Public and empty (GitHub Pages on the Free plan needs a public repository). Suggested name: `internet-data` |
 | Configure Pages | Settings, Pages, Source: **GitHub Actions**. Needs admin or maintain (the owner has it) |
-| Actions | Default workflow permission can stay read-only: the deploy job declares `pages: write` and `id-token: write` itself. Confirm in Gate 2B that this is not blocked. Enable "Require actions to be pinned to a full-length commit SHA" |
+| Actions | Settings, Actions, General: allow GitHub-owned actions only; require actions to be pinned to a full-length commit SHA; workflow permissions read-only (the deploy job declares `pages: write` and `id-token: write` itself) |
 | Environment | `github-pages` is created automatically; add a deployment rule so only `main` can deploy |
 | Push | Your existing git credential, only after you authorize it |
-| Re-verify | Every `uses:` SHA in the workflow, against the actions' current releases |
+| Re-verify | `node scripts/verify-action-shas.mjs` checks every `uses:` SHA (and the one the Pages composite action pulls in) against the official upstream repositories, over the API and with `git ls-remote` |
 
 Not needed: personal access tokens, repository secrets, DNS changes. A custom domain for the data origin (`data.lateeflaw.info`) is a later decision that needs a DNS record.
 
@@ -79,7 +93,10 @@ Not needed: personal access tokens, repository secrets, DNS changes. A custom do
 ## Local commands
 
 ```
-npm test                      # every test (97 data-side tests at the time of writing)
-node src/collect.mjs --dry-run   # about 10 anonymous requests to the RIPE Atlas API; writes out/ only, never a site tree
+npm test                         # every test (the count is printed by the runner)
+node src/collect.mjs --out site  # builds the site tree for the committed configuration (synthetic: no network at all)
+node src/collect.mjs --out site --fault validation   # rehearse a failure gate (synthetic only)
 node scripts/mutation-proof.mjs  # breaks one rule at a time in a copy and requires the suite to fail
+node scripts/audit-history.mjs   # scans every blob and commit message for addresses, credentials, e-mail, local paths, raw RIPE results
+node scripts/verify-action-shas.mjs   # checks the pinned action SHAs against upstream (needs the network)
 ```
