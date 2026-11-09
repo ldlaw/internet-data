@@ -40,7 +40,11 @@ const M = [  // [file, exact text to replace, replacement, what it breaks]
   ['.github/workflows/collect-and-deploy.yml', 'persist-credentials: false', 'persist-credentials: true', 'checkout keeps the job credentials'],
   ['.github/workflows/collect-and-deploy.yml', 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'actions/checkout@v7', 'an action pinned by tag instead of commit SHA'],
   ['.github/workflows/collect-and-deploy.yml', '        run: node --test', '        run: node --test\n      - run: git push origin HEAD', 'a step that pushes to a repository'],
-  ['.github/workflows/collect-and-deploy.yml', '        run: node --test', '        run: |\n          node --test\n          curl -s https://example.org/x', 'a multi-line run block that calls out to the network']
+  ['.github/workflows/collect-and-deploy.yml', '        run: node --test', '        run: |\n          node --test\n          curl -s https://example.org/x', 'a multi-line run block that calls out to the network'],
+  // failed-gate bypass: constructs that would let a failed gate still publish (GitHub runs a step only after success unless one of these overrides it)
+  ['.github/workflows/collect-and-deploy.yml', 'run: node src/collect.mjs --out site --fault "${FAULT:-none}"', 'run: node src/collect.mjs --out site --fault "${FAULT:-none}"\n        continue-on-error: true', 'failed-gate bypass: the collect step may fail without failing the job'],
+  ['.github/workflows/collect-and-deploy.yml', '        with:\n          path: site', '        if: always()\n        with:\n          path: site', 'failed-gate bypass: the upload step runs even after a failed gate'],
+  ['.github/workflows/collect-and-deploy.yml', '    needs: build', '    needs: build\n    if: ${{ always() }}', 'failed-gate bypass: the deploy job runs even after a failed build']
 ];
 const only = (process.argv.find((a) => a.startsWith('--only=')) || '').slice(7); let survived = 0, ran = 0;
 for (const [file, from, to, what] of M) {

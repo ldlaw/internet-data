@@ -59,6 +59,13 @@ test('jobs are time-limited, serialized, and deploy depends on a build that runs
   assert.equal((code.match(/timeout-minutes:\s*10/g) || []).length, 2); assert.match(code, /concurrency:\n {2}group: pages\n {2}cancel-in-progress: false/); assert.match(section('deploy'), /needs: build/);
   const b = section('build'); assert.ok(b.indexOf('node --test') < b.indexOf('src/collect.mjs') && b.indexOf('src/collect.mjs') < b.indexOf('upload-pages-artifact'));
 });
+test('a failed gate cannot publish: nothing overrides GitHub\'s default that a step or job runs only after everything before it succeeded', () => {
+  // GitHub skips every later step, and every job that "needs" this one, after a failure, unless one of these constructs says otherwise.
+  for (const bad of [/^\s*(?:-\s+)?if:/m, /continue-on-error/, /\balways\(\)/, /\bfailure\(\)/, /\bcancelled\(\)/, /\bsuccess\(\)/, /\bneeds\.[\w-]+\.(result|outcome)/, /\.outcome\b/, /\.conclusion\b/]) assert.ok(!bad.test(code), String(bad));
+  const jobs = code.slice(code.indexOf('\njobs:\n')).match(/^ {2}[\w-]+:\s*$/gm).map((s) => s.trim());
+  assert.deepEqual(jobs, ['build:', 'deploy:'], 'a third job could be a "needs" target that always succeeds');
+  assert.equal((code.match(/^\s+needs:/gm) || []).length, 1); assert.match(section('deploy'), /^ {4}needs: build$/m);   // a plain string, not a list
+});
 test('only the site tree is uploaded for Pages, and nothing else is uploaded anywhere (no artifact can expose the unpublished dataset)', () => {
   assert.match(code, /upload-pages-artifact@[0-9a-f]{40}\n {8}with:\n {10}path: site\n/); assert.ok(!/upload-artifact/.test(code)); assert.equal((code.match(/path:/g) || []).length, 1);
 });
