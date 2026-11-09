@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "surfaces": { "home": true, "dashboard": false },
   "reason": null
 }
