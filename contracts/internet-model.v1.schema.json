@@ -1,0 +1,916 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lateeflaw.info/schemas/internet-model/v1",
+  "title": "lateeflaw Internet model, contract v1 (not yet published)",
+  "description": "One contract shared by the homepage globe and a future dashboard. Documents are selected by their 'schema' field (see x-documents). Collector CI validates in strict mode (unknown fields rejected, which is the privacy control); browsers validate in tolerant mode (unknown fields ignored, unknown observation types skipped).",
+  "x-documents": {
+    "lateeflaw.internet-dataset": "dataset",
+    "lateeflaw.home-view": "homeView",
+    "lateeflaw.internet-control": "control",
+    "lateeflaw.internet-catalog": "catalog"
+  },
+  "$defs": {
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+    },
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^1\\.\\d{1,3}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{1,11}$"
+    },
+    "datasetId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9.-]{2,47}$"
+    },
+    "cc": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "label": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9 .,()'-]{1,40}$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 240,
+      "pattern": "^[^<>]*$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]{3,200}$"
+    },
+    "relpath": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9/_.-]{2,79}$"
+    },
+    "lat": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+    },
+    "lon": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+    },
+    "rtt": {
+      "type": "number",
+      "minimum": 0.05,
+      "maximum": 2000
+    },
+    "pct": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "pos": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "level": {
+      "enum": [
+        "good",
+        "degraded",
+        "poor"
+      ]
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "operator",
+        "url",
+        "terms_url",
+        "attribution"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/label"
+        },
+        "operator": {
+          "$ref": "#/$defs/label"
+        },
+        "url": {
+          "$ref": "#/$defs/url"
+        },
+        "terms_url": {
+          "$ref": "#/$defs/url"
+        },
+        "attribution": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "country",
+        "geo",
+        "refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "anchor"
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/label"
+        },
+        "country": {
+          "$ref": "#/$defs/cc"
+        },
+        "geo": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lat",
+            "lon",
+            "precision_km"
+          ],
+          "properties": {
+            "lat": {
+              "$ref": "#/$defs/lat"
+            },
+            "lon": {
+              "$ref": "#/$defs/lon"
+            },
+            "precision_km": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 50
+            }
+          }
+        },
+        "refs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "anchor_id",
+            "probe_id"
+          ],
+          "properties": {
+            "anchor_id": {
+              "$ref": "#/$defs/pos"
+            },
+            "probe_id": {
+              "$ref": "#/$defs/pos"
+            }
+          }
+        }
+      }
+    },
+    "pingObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "src",
+        "dst",
+        "observed",
+        "results",
+        "rtt_ms",
+        "loss",
+        "quality",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^ping:[a-z0-9][a-z0-9-]{1,11}>[a-z0-9][a-z0-9-]{1,11}$"
+        },
+        "type": {
+          "const": "ping"
+        },
+        "src": {
+          "$ref": "#/$defs/id"
+        },
+        "dst": {
+          "$ref": "#/$defs/id"
+        },
+        "observed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "first",
+            "last"
+          ],
+          "properties": {
+            "first": {
+              "$ref": "#/$defs/ts"
+            },
+            "last": {
+              "$ref": "#/$defs/ts"
+            }
+          }
+        },
+        "results": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "rtt_ms": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "median",
+            "last"
+          ],
+          "properties": {
+            "min": {
+              "$ref": "#/$defs/rtt"
+            },
+            "median": {
+              "$ref": "#/$defs/rtt"
+            },
+            "last": {
+              "$ref": "#/$defs/rtt"
+            }
+          }
+        },
+        "loss": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sent",
+            "rcvd",
+            "pct"
+          ],
+          "properties": {
+            "sent": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "rcvd": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000
+            },
+            "pct": {
+              "$ref": "#/$defs/pct"
+            }
+          }
+        },
+        "quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level",
+            "flags"
+          ],
+          "properties": {
+            "level": {
+              "$ref": "#/$defs/level"
+            },
+            "flags": {
+              "type": "array",
+              "maxItems": 4,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "few_results",
+                  "aged",
+                  "clock_unsynced",
+                  "loss_observed"
+                ]
+              }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "measurement_id",
+            "probe_id"
+          ],
+          "properties": {
+            "measurement_id": {
+              "$ref": "#/$defs/pos"
+            },
+            "probe_id": {
+              "$ref": "#/$defs/pos"
+            }
+          }
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version",
+        "dataset_id",
+        "generated_at",
+        "provenance",
+        "endpoints",
+        "observations",
+        "coverage",
+        "notes"
+      ],
+      "properties": {
+        "schema": {
+          "const": "lateeflaw.internet-dataset"
+        },
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/datasetId"
+        },
+        "generated_at": {
+          "$ref": "#/$defs/ts"
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "method",
+            "fetched_at",
+            "collector",
+            "publication"
+          ],
+          "properties": {
+            "provider": {
+              "$ref": "#/$defs/provider"
+            },
+            "method": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "protocol",
+                "af",
+                "interval_s",
+                "packets_per_result",
+                "window_results_max",
+                "selection",
+                "api"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "ping"
+                  ]
+                },
+                "protocol": {
+                  "enum": [
+                    "ICMP"
+                  ]
+                },
+                "af": {
+                  "enum": [
+                    4,
+                    6
+                  ]
+                },
+                "interval_s": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 86400
+                },
+                "packets_per_result": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 20
+                },
+                "window_results_max": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                "selection": {
+                  "$ref": "#/$defs/text"
+                },
+                "api": {
+                  "$ref": "#/$defs/url"
+                }
+              }
+            },
+            "fetched_at": {
+              "$ref": "#/$defs/ts"
+            },
+            "collector": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version"
+              ],
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-z0-9.]{1,16})?$"
+                }
+              }
+            },
+            "publication": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "permission_status"
+              ],
+              "properties": {
+                "permission_status": {
+                  "enum": [
+                    "pending",
+                    "granted",
+                    "not_required",
+                    "synthetic"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/endpoint"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/pingObservation"
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "endpoints",
+            "expected",
+            "published",
+            "dropped"
+          ],
+          "properties": {
+            "endpoints": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 32
+            },
+            "expected": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 992
+            },
+            "published": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 256
+            },
+            "dropped": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "no_fresh_result": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "stale_rows": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wrong_destination": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "future_timestamp": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "implausible_rtt": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "below_fibre_bound": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "bad_counts": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "notes": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/text"
+          }
+        }
+      }
+    },
+    "homeView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version",
+        "generated_at",
+        "dataset_id",
+        "selection",
+        "attribution",
+        "freshness",
+        "coverage",
+        "nodes",
+        "pairs",
+        "gaps"
+      ],
+      "properties": {
+        "schema": {
+          "const": "lateeflaw.home-view"
+        },
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "generated_at": {
+          "$ref": "#/$defs/ts"
+        },
+        "dataset_id": {
+          "$ref": "#/$defs/datasetId"
+        },
+        "attribution": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "text",
+            "url",
+            "terms_url",
+            "simulated",
+            "disclaimer"
+          ],
+          "properties": {
+            "text": {
+              "$ref": "#/$defs/text"
+            },
+            "url": {
+              "$ref": "#/$defs/url"
+            },
+            "terms_url": {
+              "$ref": "#/$defs/url"
+            },
+            "simulated": {
+              "type": "boolean"
+            },
+            "disclaimer": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        },
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "newest_observation",
+            "oldest_observation"
+          ],
+          "properties": {
+            "newest_observation": {
+              "$ref": "#/$defs/ts"
+            },
+            "oldest_observation": {
+              "$ref": "#/$defs/ts"
+            }
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "label",
+              "country",
+              "lat",
+              "lon"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/id"
+              },
+              "label": {
+                "$ref": "#/$defs/label"
+              },
+              "country": {
+                "$ref": "#/$defs/cc"
+              },
+              "lat": {
+                "$ref": "#/$defs/lat"
+              },
+              "lon": {
+                "$ref": "#/$defs/lon"
+              }
+            }
+          }
+        },
+        "pairs": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "src",
+              "dst",
+              "rtt_median",
+              "rtt_min",
+              "loss_pct",
+              "sent",
+              "observed_first",
+              "observed",
+              "quality",
+              "flags",
+              "measurement_id",
+              "probe_id",
+              "reverse"
+            ],
+            "properties": {
+              "src": {
+                "$ref": "#/$defs/id"
+              },
+              "dst": {
+                "$ref": "#/$defs/id"
+              },
+              "rtt_median": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0.05,
+                "maximum": 2000
+              },
+              "rtt_min": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0.05,
+                "maximum": 2000
+              },
+              "loss_pct": {
+                "$ref": "#/$defs/pct"
+              },
+              "sent": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000
+              },
+              "observed": {
+                "$ref": "#/$defs/ts"
+              },
+              "quality": {
+                "$ref": "#/$defs/level"
+              },
+              "measurement_id": {
+                "$ref": "#/$defs/pos"
+              },
+              "observed_first": {
+                "$ref": "#/$defs/ts"
+              },
+              "flags": {
+                "type": "array",
+                "maxItems": 4,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "few_results",
+                    "aged",
+                    "clock_unsynced",
+                    "loss_observed"
+                  ]
+                }
+              },
+              "probe_id": {
+                "$ref": "#/$defs/pos"
+              },
+              "reverse": {
+                "enum": [
+                  "present",
+                  "missing"
+                ]
+              }
+            }
+          }
+        },
+        "selection": {
+          "const": "freshest-direction"
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "directed_expected",
+            "directed_available",
+            "pairs_expected",
+            "pairs_published",
+            "pairs_missing"
+          ],
+          "properties": {
+            "directed_expected": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 992
+            },
+            "directed_available": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 992
+            },
+            "pairs_expected": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 496
+            },
+            "pairs_published": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "pairs_missing": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 496
+            }
+          }
+        },
+        "gaps": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "a",
+              "b"
+            ],
+            "properties": {
+              "a": {
+                "$ref": "#/$defs/id"
+              },
+              "b": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version",
+        "updated_at",
+        "enabled",
+        "surfaces",
+        "reason"
+      ],
+      "properties": {
+        "schema": {
+          "const": "lateeflaw.internet-control"
+        },
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/ts"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "surfaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "home",
+            "dashboard"
+          ],
+          "properties": {
+            "home": {
+              "type": "boolean"
+            },
+            "dashboard": {
+              "type": "boolean"
+            }
+          }
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 80,
+          "pattern": "^[^<>]*$"
+        }
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "schema_version",
+        "generated_at",
+        "items"
+      ],
+      "properties": {
+        "schema": {
+          "const": "lateeflaw.internet-catalog"
+        },
+        "schema_version": {
+          "$ref": "#/$defs/schemaVersion"
+        },
+        "generated_at": {
+          "$ref": "#/$defs/ts"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "kind",
+              "path",
+              "schema",
+              "consumers",
+              "bytes"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "#/$defs/datasetId"
+              },
+              "kind": {
+                "enum": [
+                  "dataset",
+                  "view"
+                ]
+              },
+              "path": {
+                "$ref": "#/$defs/relpath"
+              },
+              "schema": {
+                "type": "string",
+                "pattern": "^lateeflaw\\.[a-z-]{3,32}$"
+              },
+              "consumers": {
+                "type": "array",
+                "uniqueItems": true,
+                "maxItems": 2,
+                "items": {
+                  "enum": [
+                    "homepage",
+                    "dashboard"
+                  ]
+                }
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5000000
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

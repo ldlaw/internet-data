@@ -1,0 +1,127 @@
+{
+  "_comment": "Ten RIPE Atlas anchors in data centres. Coordinates are curated, rounded to 0.01 degree. measurement_id is the public anchoring-mesh ping measurement that TARGETS the node. target_ip is that anchor address, used only to verify results; it is never published.",
+  "provider": "ripe-atlas",
+  "dataset_id": "ripe-atlas.ping.anchor-mesh",
+  "nodes": [
+    {
+      "id": "ash",
+      "label": "Ashburn",
+      "country": "US",
+      "lat": 39.02,
+      "lon": -77.46,
+      "anchor_id": 1838,
+      "probe_id": 6585,
+      "measurement_id": 22453852,
+      "target_fqdn": "us-abn-as36236.anchors.atlas.ripe.net",
+      "target_ip": "192.73.253.2"
+    },
+    {
+      "id": "dxb",
+      "label": "Dubai",
+      "country": "AE",
+      "lat": 25.03,
+      "lon": 55.19,
+      "anchor_id": 2825,
+      "probe_id": 7047,
+      "measurement_id": 34466562,
+      "target_fqdn": "ae-dxb-as15412-client.anchors.atlas.ripe.net",
+      "target_ip": "80.77.4.60"
+    },
+    {
+      "id": "fra",
+      "label": "Frankfurt",
+      "country": "DE",
+      "lat": 50.12,
+      "lon": 8.74,
+      "anchor_id": 2483,
+      "probe_id": 6979,
+      "measurement_id": 29656930,
+      "target_fqdn": "de-fra-as12008.anchors.atlas.ripe.net",
+      "target_ip": "156.154.76.254"
+    },
+    {
+      "id": "gru",
+      "label": "Sao Paulo",
+      "country": "BR",
+      "lat": -23.65,
+      "lon": -46.73,
+      "anchor_id": 1454,
+      "probe_id": 6410,
+      "measurement_id": 17142952,
+      "target_fqdn": "br-sao-as22548.anchors.atlas.ripe.net",
+      "target_ip": "200.160.6.19"
+    },
+    {
+      "id": "jnb",
+      "label": "Johannesburg",
+      "country": "ZA",
+      "lat": -26.14,
+      "lon": 28.2,
+      "anchor_id": 2507,
+      "probe_id": 6993,
+      "measurement_id": 29766764,
+      "target_fqdn": "za-jnb-as12008.anchors.atlas.ripe.net",
+      "target_ip": "156.154.135.254"
+    },
+    {
+      "id": "lax",
+      "label": "Los Angeles",
+      "country": "US",
+      "lat": 34.05,
+      "lon": -118.26,
+      "anchor_id": 4604,
+      "probe_id": 7714,
+      "measurement_id": 157619356,
+      "target_fqdn": "us-lax-as11878.anchors.atlas.ripe.net",
+      "target_ip": "198.54.129.8"
+    },
+    {
+      "id": "lon",
+      "label": "London",
+      "country": "GB",
+      "lat": 51.5,
+      "lon": -0.01,
+      "anchor_id": 1990,
+      "probe_id": 6670,
+      "measurement_id": 23439121,
+      "target_fqdn": "uk-lon-as199524.anchors.atlas.ripe.net",
+      "target_ip": "92.223.59.77"
+    },
+    {
+      "id": "sin",
+      "label": "Singapore",
+      "country": "SG",
+      "lat": 1.35,
+      "lon": 103.82,
+      "anchor_id": 3256,
+      "probe_id": 7166,
+      "measurement_id": 48495047,
+      "target_fqdn": "sg-sin-as132337.anchors.atlas.ripe.net",
+      "target_ip": "103.69.212.8"
+    },
+    {
+      "id": "syd",
+      "label": "Sydney",
+      "country": "AU",
+      "lat": -33.92,
+      "lon": 151.19,
+      "anchor_id": 2473,
+      "probe_id": 6976,
+      "measurement_id": 79359774,
+      "target_fqdn": "au-syd-as12008.anchors.atlas.ripe.net",
+      "target_ip": "156.154.99.254"
+    },
+    {
+      "id": "tyo",
+      "label": "Tokyo",
+      "country": "JP",
+      "lat": 35.69,
+      "lon": 139.77,
+      "anchor_id": 4451,
+      "probe_id": 7663,
+      "measurement_id": 142801323,
+      "target_fqdn": "jp-tyo-as141682-client.anchors.atlas.ripe.net",
+      "target_ip": "103.161.244.73"
+    }
+  ]
+}
