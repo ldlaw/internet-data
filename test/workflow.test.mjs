@@ -7,7 +7,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), w
 const code = wf.split('\n').map((l) => l.replace(/\s+#.*$/, '')).filter((l) => l.trim() && !/^\s*#/.test(l)).join('\n') + '\n';
 const JOB = /^ {2}[\w-]+:\s*$/;
 const section = (name) => { const lines = code.split('\n'), i = lines.findIndex((l) => l === `  ${name}:`); if (i < 0) return ''; let j = i + 1; while (j < lines.length && !JOB.test(lines[j])) j++; return lines.slice(i + 1, j).join('\n'); };
-const runBlocks = () => [...code.matchAll(/^\s*run:\s*(.*)$/gm)].map((m) => m[1]);
+// every shell command of every step: "run: x", "- run: x" (dash on the same line) and block scalars ("run: |" followed by more-indented lines)
+const runBlocks = () => {
+  const lines = code.split('\n'), out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^(\s*)(?:-\s+)?run:\s*([|>][-+]?)?\s*(.*)$/); if (!m) continue;
+    if (!m[2]) { out.push(m[3]); continue; }
+    const indent = lines[i].match(/^\s*/)[0].length, body = []; while (i + 1 < lines.length && (lines[i + 1].match(/^\s*/)[0].length > indent)) body.push(lines[++i].trim()); out.push(body.join('\n'));
+  }
+  return out;
+};
 
 test('every action is pinned to a full 40-character commit SHA', () => {
   const uses = [...code.matchAll(/uses:\s*(\S+)/g)].map((m) => m[1]); assert.ok(uses.length >= 4);
