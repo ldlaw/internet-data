@@ -34,6 +34,7 @@ for (const { blob, size, file } of seen.values()) {
   if (size > 100 * 1024) add('large file', file, size + ' bytes', false, 'unexpectedly large');
   if (/^(out|site|node_modules)\//.test(file) || /\.(log|env|pem|key)$/.test(file) || /(^|\/)\.env/.test(file)) add('unwanted path', file, '', false, 'generated output or secret-like file name');
   txt.split('\n').forEach((ln, i) => {
+    if (file === 'scripts/audit-history.mjs' && /^\s*\['(credential|email|local path|raw RIPE)/.test(ln)) return;   // this script's own rule definitions necessarily contain the patterns they search for
     for (const ip of ln.match(IPV4) || []) { if (docRange(ip)) continue; if (file === 'config/nodes.json') add('IP address', `${file}:${i + 1}`, ip, true, 'RIPE-published address of a public data-centre anchor, used only to verify results, never published'); else add('IP address', `${file}:${i + 1}`, ip, false, 'unexpected address'); }
     for (const ip of ln.match(IPV6) || []) { if (/^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$/.test(ip)) continue; if (/^(::1?|2001:0?db8:.*)$/i.test(ip)) continue; if (/[a-f:]{3}/i.test(ip) && ip.length > 4) add('IPv6-like string', `${file}:${i + 1}`, ip, false, 'IPv6 address outside the documentation range'); }
     for (const [k, re] of RULES) { const mm = ln.match(re); if (!mm) continue; if (k === 'email' && ALLOWED_EMAIL.test(mm[0])) continue; add(k, `${file}:${i + 1}`, mm[0], false, 'matched ' + k); }
