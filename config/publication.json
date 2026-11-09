@@ -1,6 +1,6 @@
 {
   "permission_status": "synthetic",
-  "rehearsal_fault": "none",
+  "rehearsal_fault": "validation",
   "reference": null,
   "_comment": "Gate 2B hosting rehearsal: SYNTHETIC data only. pending = RIPE-derived documents must NOT be published. Set to granted or not_required only after RIPE NCC's written answer, which also switches the collector from the fixture adapter to the real RIPE Atlas adapter. synthetic = simulated test data, never from any provider, never requests the network. rehearsal_fault (none, validation, quality, permission, collection) makes a synthetic run fail on purpose to prove the failure gates; it must stay none otherwise and is refused for any other permission status."
 }
