@@ -28,7 +28,7 @@ test('synthetic: marked simulated in five independent places', () => {
   const d = synth(), home = curateHome(d);
   assert.equal(d.provenance.simulated, true); assert.equal(d.provenance.publication.permission_status, 'synthetic'); assert.equal(d.provenance.provider.id, 'fixture'); assert.ok(d.dataset_id.startsWith('synthetic-'));
   assert.ok(d.endpoints.every((e) => e.refs.anchor_id > SYNTHETIC_ID_BASE && e.refs.probe_id > SYNTHETIC_ID_BASE)); assert.ok(d.observations.every((o) => o.source.measurement_id > SYNTHETIC_ID_BASE && o.source.probe_id > SYNTHETIC_ID_BASE));
-  assert.match(d.notes[0], /^SIMULATED/); assert.match(d.provenance.provider.name, /synthetic/i); assert.match(d.provenance.provider.attribution, /simulated/i);
+  assert.match(d.notes[0], /^SIMULATED/); assert.match(d.provenance.provider.name, /simulated/i); assert.match(d.provenance.provider.attribution, /simulated/i);
   assert.equal(home.attribution.simulated, true); assert.match(home.attribution.text, /^SIMULATED/); assert.match(home.attribution.disclaimer, /simulated/i); assert.ok(home.pairs.every((p) => p.measurement_id > SYNTHETIC_ID_BASE && p.probe_id > SYNTHETIC_ID_BASE));
 });
 test('synthetic: no published document mentions RIPE or carries an address or a real identifier', () => {
