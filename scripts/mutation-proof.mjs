@@ -36,7 +36,7 @@ const M = [  // [file, exact text to replace, replacement, what it breaks]
   ['src/adapters/fixture-ping.mjs', 'anchor_id: SYNTHETIC_ID_BASE + 1 + i', 'anchor_id: 1838 + i', 'synthetic identifiers leave the reserved range'],
   ['.github/workflows/collect-and-deploy.yml', 'run: node src/collect.mjs --out site --fault "${FAULT:-none}"', 'run: node src/collect.mjs --out site --fault ${{ inputs.fault }}', 'dispatch input interpolated into a shell command'],
   ['.github/workflows/collect-and-deploy.yml', '      id-token: write', '      id-token: write\n      contents: write', 'deploy job gains contents write'],
-  ['.github/workflows/collect-and-deploy.yml', '  workflow_dispatch:', "  schedule:\n    - cron: '17,47 * * * *'\n  workflow_dispatch:", 'unattended schedule enabled during the rehearsal'],
+  ['.github/workflows/collect-and-deploy.yml', "    - cron: '17,47 * * * *'", "    - cron: '0,30 * * * *'", 'the schedule changed from the approved one'],
   ['.github/workflows/collect-and-deploy.yml', 'persist-credentials: false', 'persist-credentials: true', 'checkout keeps the job credentials'],
   ['.github/workflows/collect-and-deploy.yml', 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'actions/checkout@v7', 'an action pinned by tag instead of commit SHA'],
   ['.github/workflows/collect-and-deploy.yml', '        run: node --test', '        run: node --test\n      - run: git push origin HEAD', 'a step that pushes to a repository'],

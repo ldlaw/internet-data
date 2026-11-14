@@ -50,9 +50,10 @@ test('no expression is interpolated into a shell command: the dispatch input rea
 test('the dispatch input is a fixed choice that matches the collector fault list exactly', () => {
   const opts = code.match(/options: \[([^\]]+)\]/)[1].split(',').map((s) => s.trim()); assert.deepEqual(opts, FAULTS); assert.match(code, /type: choice/); assert.match(code, /default: none/);
 });
-test('no schedule is active during the rehearsal, and the planned schedule (commented) avoids the :00 and :30 peaks', () => {
-  assert.ok(!/^\s*schedule:/m.test(code) && !/cron:/.test(code), 'an active schedule would republish simulated data unattended');
-  const planned = wf.match(/cron: '([^']+)'/)[1]; assert.ok(!/^(0|30)[ ,]/.test(planned), planned);
+test('the schedule (enabled at Gate 3C step 4) is exactly the approved one: a single cron, twice an hour, away from the :00 and :30 peaks, and a scheduled run cannot inject a fault', () => {
+  const crons = [...code.matchAll(/cron:\s*'([^']+)'/g)].map((m) => m[1]); assert.deepEqual(crons, ['17,47 * * * *'], 'only the approved schedule may be active');
+  assert.equal((code.match(/^\s*schedule:/mg) || []).length, 1); assert.ok(!/^(0|30)[ ,]/.test(crons[0]), crons[0]);
+  assert.match(code, /FAULT: \$\{\{ inputs\.fault \}\}/); assert.match(code, /--fault "\$\{FAULT:-none\}"/);   // inputs are empty on a schedule, so the fault falls back to none
   assert.match(code, /workflow_dispatch/); assert.match(code, /paths:\s*\['config\/\*\*'/);
 });
 test('jobs are time-limited, serialized, and deploy depends on a build that runs the tests and the gates first', () => {

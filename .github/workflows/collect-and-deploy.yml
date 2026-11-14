@@ -6,8 +6,11 @@
 name: collect-and-deploy
 
 on:
-  # schedule is DISABLED for Gate 2B. A schedule would keep republishing simulated data unattended after the rehearsal ends.
-  # Planned for Gate 3 only, with explicit approval:   schedule: - cron: '17,47 * * * *'   (twice an hour, away from the :00 and :30 peaks)
+  # Schedule ENABLED at Gate 3C step 4 (2026-11-14, the owner's explicit approval): twice an hour, away from the :00 and :30 peaks. Each run regenerates the
+  # SIMULATED dataset and re-stamps the control document, so the dashboard keeps its data inside the 75-minute "recent" window and its control inside 24 hours.
+  # While config/publication.json is "synthetic" a scheduled run makes no network request. A scheduled run has no inputs, so the fault is always none.
+  schedule:
+    - cron: '17,47 * * * *'
   workflow_dispatch:
     inputs:
       fault:
