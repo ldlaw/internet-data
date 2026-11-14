@@ -10,7 +10,7 @@ on:
   # SIMULATED dataset and re-stamps the control document, so the dashboard keeps its data inside the 75-minute "recent" window and its control inside 24 hours.
   # While config/publication.json is "synthetic" a scheduled run makes no network request. A scheduled run has no inputs, so the fault is always none.
   schedule:
-    - cron: '17,47 * * * *'
+    - cron: '13,43 * * * *'
   workflow_dispatch:
     inputs:
       fault:
